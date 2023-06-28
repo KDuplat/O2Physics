@@ -2,9 +2,8 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/HistogramRegistry.h"
 
-
-#include "/home/kduplat/Documents/MotherfromSubprocess.h"
-#include "/home/kduplat/Documents/Truejetfinder.h"
+#include "PWGJE/TableProducer/MotherfromSubprocess.h"
+#include "PWGJE/TableProducer/Truejetfinder.h"
 
 #include "PWGJE/Core/FastJetUtilities.h"
 #include "PWGJE/DataModel/Jet.h"
@@ -13,28 +12,15 @@
 #include <TGraph.h>
 #include "TCanvas.h"
 
-    /**********Vertexing***********/
-    #include <algorithm>
+/**********Vertexing***********/
+#include "Common/Core/trackUtilities.h"
+#include "DCAFitter/DCAFitterN.h"
 
-    #include "Common/Core/RecoDecay.h"
-    #include "Common/Core/TrackSelectorPID.h"
-    #include "Common/Core/trackUtilities.h"
-    #include "Common/DataModel/PIDResponse.h"
-    #include "Common/DataModel/TrackSelectionTables.h"
-    #include "DCAFitter/DCAFitterN.h"
-    #include "Framework/AnalysisDataModel.h"
-    #include "Framework/AnalysisTask.h"
-    #include "Framework/HistogramRegistry.h"
-    #include "Framework/runDataProcessing.h"
+#include "PWGHF/Core/SelectorCuts.h"
 
-    #include "PWGHF/Core/SelectorCuts.h"
-
-    using namespace o2;
-    using namespace o2::analysis;
-    using namespace o2::aod;
-    using namespace o2::framework;
-    using namespace o2::framework::expressions;
-    /***********Vertexing***********/
+using namespace o2::analysis;
+using namespace o2::aod;
+/***********Vertexing***********/
 
 using namespace o2;
 using namespace o2::framework;
@@ -154,6 +140,12 @@ struct MyTask
             histo.add("trueTrackpt", "Transverse momentum of tracks in truejets", HistType::kTH1F, {{500, 0, 20}});
             histo.get<TH1>(HIST("trueTrackpt"))->GetYaxis()->SetTitle("Count");
             histo.get<TH1>(HIST("trueTrackpt"))->GetXaxis()->SetTitle("Transverse momentum (GeV)");
+            histo.add("trueTracketa", "Rapidity of tracks in truejets", HistType::kTH1F, {{50, -1, 1}});
+            histo.get<TH1>(HIST("trueTracketa"))->GetYaxis()->SetTitle("Count");
+            histo.get<TH1>(HIST("trueTracketa"))->GetXaxis()->SetTitle("Rapidity");
+            histo.add("trueTrackphi", "Phi of tracks in truejets", HistType::kTH1F, {{50, -1, 7}});
+            histo.get<TH1>(HIST("trueTrackphi"))->GetYaxis()->SetTitle("Count");
+            histo.get<TH1>(HIST("trueTrackphi"))->GetXaxis()->SetTitle("rad");
 
             histo.add("2DMomentumTruejet","Truejet Pt/Truejet reconstructed Pt", HistType::kTH2F, {{100, 0, 20}, {100, 0, 20}});
             histo.get<TH2>(HIST("2DMomentumTruejet"))->GetYaxis()->SetTitle("First mother tranverse momentum");
@@ -174,19 +166,36 @@ struct MyTask
             histo.add("jetTrackpt", "Transverse momentum of tracks in jets", HistType::kTH1F, {{500, 0, 20}});
             histo.get<TH1>(HIST("jetTrackpt"))->GetYaxis()->SetTitle("Count");
             histo.get<TH1>(HIST("jetTrackpt"))->GetXaxis()->SetTitle("Momentum (GeV)");
+            histo.add("jetTracketa", "Rapidity of tracks in jets", HistType::kTH1F, {{50, -1, 1}});
+            histo.get<TH1>(HIST("jetTracketa"))->GetYaxis()->SetTitle("Count");
+            histo.get<TH1>(HIST("jetTracketa"))->GetXaxis()->SetTitle("Rapidity");
+            histo.add("jetTrackphi", "Phi of tracks in jets", HistType::kTH1F, {{100, -1, 7}});
+            histo.get<TH1>(HIST("jetTrackphi"))->GetYaxis()->SetTitle("Count");
+            histo.get<TH1>(HIST("jetTrackphi"))->GetXaxis()->SetTitle("Rad");
 
             histo.add("JetPt", "Transverse momentum of jets", HistType::kTH1F, {specjetpt});
             histo.get<TH1>(HIST("JetPt"))->GetYaxis()->SetTitle("Count");
             histo.get<TH1>(HIST("JetPt"))->GetXaxis()->SetTitle("Momentum (GeV)");
 
-            histo.add("Truejetmatching","Percentage of correspondance between true jet and jetfinder(Nb of match/jetsize)", HistType::kTH1F, {{200,0,101}});
-            histo.get<TH1>(HIST("Truejetmatching"))->GetYaxis()->SetTitle("Count");
-            histo.get<TH1>(HIST("Truejetmatching"))->GetXaxis()->SetTitle("%");
+
+            histo.add("Truejetmatching1","Percentage of tracks in inclusive jets with a match in truejets(Nb of match/jetsize)", HistType::kTH1F, {{200,0,101}});
+            histo.get<TH1>(HIST("Truejetmatching1"))->GetYaxis()->SetTitle("Count");
+            histo.get<TH1>(HIST("Truejetmatching1"))->GetXaxis()->SetTitle("%");
+
+            histo.add("Truejetmatching2","Percentage of tracks in matched jets with a match in truejets(Nb of match/jetsize)", HistType::kTH1F, {{200,0,101}});
+            histo.get<TH1>(HIST("Truejetmatching2"))->GetYaxis()->SetTitle("Count");
+            histo.get<TH1>(HIST("Truejetmatching2"))->GetXaxis()->SetTitle("%");
+            histo.add("Truejetmatching3","Higher percentage of correspondance between true jet and jetfinder for a first mother(Nb of match/jetsize)", HistType::kTH1F, {{200,0,101}});
+            histo.get<TH1>(HIST("Truejetmatching3"))->GetYaxis()->SetTitle("Count");
+            histo.get<TH1>(HIST("Truejetmatching3"))->GetXaxis()->SetTitle("%");
 
             histo.add("Nbtracksmatching","Truejet size when matching", HistType::kTH1F, {spectruejet});
             histo.get<TH1>(HIST("Nbtracksmatching"))->GetYaxis()->SetTitle("Count");
             histo.get<TH1>(HIST("Nbtracksmatching"))->GetXaxis()->SetTitle("Number of tracks");
 
+            histo.add("Truetracknomatch","Percentage of tracks in truejet with a match", HistType::kTH1F, {{200,0,101}});
+            histo.get<TH1>(HIST("Truetracknomatch"))->GetYaxis()->SetTitle("Count");
+            histo.get<TH1>(HIST("Truetracknomatch"))->GetXaxis()->SetTitle("%");
 
             histo.add("PDGcode2", "Finalstate particle frequency in truejets", HistType::kTH1F, {{15,0, 15}} );
             histo.get<TH1>(HIST("PDGcode2"))->GetYaxis()->SetTitle("Count");
@@ -243,11 +252,11 @@ struct MyTask
 
             histo.add("Rdistribution","Truejet radius distribution", HistType::kTH1F, {{1000, 0,15}});
             histo.get<TH1>(HIST("Rdistribution"))->GetYaxis()->SetTitle("Count");
-            histo.get<TH1>(HIST("Rdistribution"))->GetXaxis()->SetTitle("R");
+            histo.get<TH1>(HIST("Rdistribution"))->GetXaxis()->SetTitle("Radius (mm)");
 
              histo.add("Rdistributionjet","Jet radius distribution", HistType::kTH1F, {{200, 0,2}});
             histo.get<TH1>(HIST("Rdistributionjet"))->GetYaxis()->SetTitle("Count");
-            histo.get<TH1>(HIST("Rdistributionjet"))->GetXaxis()->SetTitle("R");
+            histo.get<TH1>(HIST("Rdistributionjet"))->GetXaxis()->SetTitle("Raidus (mm)");
 
             histo.add("2DMomentumjet","Jet Pt/Jet reconstructed Pt", HistType::kTH2F, {{100, 0, 20}, {100, 0, 20}});
             histo.get<TH2>(HIST("2DMomentumjet"))->GetYaxis()->SetTitle("Jet tranverse momentum");
@@ -260,7 +269,6 @@ struct MyTask
             histo.add("2Dphijet","Jet azimuth angle/Jet reconstructed azimuth angle", HistType::kTH2F, {{100, -4, 4}, {100, -4, 4}});
             histo.get<TH2>(HIST("2Dphijet"))->GetYaxis()->SetTitle("Jet azimuth angle");
             histo.get<TH2>(HIST("2Dphijet"))->GetXaxis()->SetTitle("Reconstructed azimuth angle");
-
         }
 
         if (doprocessParticleLevel){
@@ -316,9 +324,37 @@ struct MyTask
             histo.get<TH1>(HIST("PtrueTrackphi"))->GetYaxis()->SetTitle("Count");
             histo.get<TH1>(HIST("PtrueTrackphi"))->GetXaxis()->SetTitle("Rad");
 
+            histo.add("2DetaTruejetP","Truejet rapidity/Truejet reconstructed rapidity", HistType::kTH2F, {{200, -10, 10}, {100, -8, 8}});
+            histo.get<TH2>(HIST("2DetaTruejetP"))->GetYaxis()->SetTitle("First mother rapidity");
+            histo.get<TH2>(HIST("2DetaTruejetP"))->GetXaxis()->SetTitle("Reconstructed rapidity");
+
+            histo.add("2DphiTruejetP","Truejet azimuth angle/Truejet reconstructed azimuth angle", HistType::kTH2F, {{100, -4, 4}, {100, -4, 4}});
+            histo.get<TH2>(HIST("2DphiTruejetP"))->GetYaxis()->SetTitle("First mother azimuth angle");
+            histo.get<TH2>(HIST("2DphiTruejetP"))->GetXaxis()->SetTitle("Reconstructed azimuth angle");
+
             histo.add("P2DMomentum","Truejet Pt/Truejet Reconstructed Pt in ParticleLevel", HistType::kTH2F, {{100, 0, 10}, {100, 0, 10}});
             histo.get<TH2>(HIST("P2DMomentum"))->GetYaxis()->SetTitle("Primordial mother tranverse momentum");
             histo.get<TH2>(HIST("P2DMomentum"))->GetXaxis()->SetTitle("Reconstructed tranverse momentum");
+
+            histo.add("RdistributionP","Truejet radius distribution", HistType::kTH1F, {{1000, 0,15}});
+            histo.get<TH1>(HIST("RdistributionP"))->GetYaxis()->SetTitle("Count");
+            histo.get<TH1>(HIST("RdistributionP"))->GetXaxis()->SetTitle("Radius (mm)");
+
+             histo.add("RdistributionjetP","Jet radius distribution", HistType::kTH1F, {{200, 0,2}});
+            histo.get<TH1>(HIST("RdistributionjetP"))->GetYaxis()->SetTitle("Count");
+            histo.get<TH1>(HIST("RdistributionjetP"))->GetXaxis()->SetTitle("Raidus (mm)");
+
+            histo.add("2DMomentumjetP","Jet Pt/Jet reconstructed Pt", HistType::kTH2F, {{100, 0, 20}, {100, 0, 20}});
+            histo.get<TH2>(HIST("2DMomentumjetP"))->GetYaxis()->SetTitle("Jet tranverse momentum");
+            histo.get<TH2>(HIST("2DMomentumjetP"))->GetXaxis()->SetTitle("Reconstructed tranverse momentum");
+
+            histo.add("2DetajetP","Jet Rapidity/Jet reconstructed rapidity", HistType::kTH2F, {{100, -1, 1}, {100, -1, 1}});
+            histo.get<TH2>(HIST("2DetajetP"))->GetYaxis()->SetTitle("Jetrapidity");
+            histo.get<TH2>(HIST("2DetajetP"))->GetXaxis()->SetTitle("Reconstructed rapidity");
+
+            histo.add("2DphijetP","Jet azimuth angle/Jet reconstructed azimuth angle", HistType::kTH2F, {{100, -4, 4}, {100, -4, 4}});
+            histo.get<TH2>(HIST("2DphijetP"))->GetYaxis()->SetTitle("Jet azimuth angle");
+            histo.get<TH2>(HIST("2DphijetP"))->GetXaxis()->SetTitle("Reconstructed azimuth angle");
 
         }
 
@@ -358,9 +394,17 @@ struct MyTask
             histo.get<TH1>(HIST("Significance"))->GetYaxis()->SetTitle("Count");
             histo.get<TH1>(HIST("Significance"))->GetXaxis()->SetTitle("significance");
 
-             histo.add("SignificanceB", "Significance light and gluon secondary vertex", HistType::kTH1F, {{200, 0, 30}});
+            histo.add("SignificanceB", "Significance light and gluon secondary vertex", HistType::kTH1F, {{200, 0, 30}});
             histo.get<TH1>(HIST("SignificanceB"))->GetYaxis()->SetTitle("Count");
             histo.get<TH1>(HIST("SignificanceB"))->GetXaxis()->SetTitle("significance");
+
+            histo.add("nbSV", "Number of second vertex from light particle in a jet", HistType::kTH1F, {{10, 0, 10}});
+            histo.get<TH1>(HIST("nbSV"))->GetYaxis()->SetTitle("Count");
+            histo.get<TH1>(HIST("nbSV"))->GetXaxis()->SetTitle("Number of second vertex");
+
+            histo.add("nbSVB", "Number of second vertex from b quark in a jet", HistType::kTH1F, {{10, 0, 10}});
+            histo.get<TH1>(HIST("nbSVB"))->GetYaxis()->SetTitle("Count");
+            histo.get<TH1>(HIST("nbSVB"))->GetXaxis()->SetTitle("Number of second vertex");
         }
         
         if (doprocessMygraph){
@@ -372,6 +416,13 @@ struct MyTask
             histo.get<TH1>(HIST("Nbjetincollision"))->GetYaxis()->SetTitle("Count");
             histo.get<TH1>(HIST("Nbjetincollision"))->GetXaxis()->SetTitle("Number of jets");
 
+            histo.add("DCAhistoXY", "Tracks DCA XY ", HistType::kTH1F, {{200,-60,60}});
+            histo.get<TH1>(HIST("DCAhistoXY"))->GetYaxis()->SetTitle("Count");
+            histo.get<TH1>(HIST("DCAhistoXY"))->GetXaxis()->SetTitle("DCA XY (cm)");
+
+            histo.add("DCAhistoZ", "Tracks DCA Z ", HistType::kTH1F, {{200,-60,60}});
+            histo.get<TH1>(HIST("DCAhistoZ"))->GetYaxis()->SetTitle("Count");
+            histo.get<TH1>(HIST("DCAhistoZ"))->GetXaxis()->SetTitle("DCA Z (cm)");
         }
     }
 
@@ -394,11 +445,11 @@ struct MyTask
         }
 
         //Array that contain all the mothers in a jet
-        //First item: Id, Second item: Count
+        //First item:ID, Second item: PDGcode, Third item: counter
         std::vector<std::vector<int64_t>> mothers;
         int msize=0; 
 
-        //First item:ID, Second item: PDGcode, Third item: counter
+        //First item: PDGcode, Second item: counter
         std::vector<int> dominantmother(2,0); 
 
         int totalcount=0;   //Total count of mothers with the statuscode needed
@@ -478,7 +529,7 @@ struct MyTask
                     msize=mothers.size();
                 }
             }else{
-                /**********NoPM.txt***********/
+                /**********NoFM.txt***********/
                 auto mother=finalstateParticle;
                 TParticlePDG* particle = TDatabasePDG::Instance()->GetParticle(mother.pdgCode());
                 if (particle != nullptr){
@@ -495,7 +546,7 @@ struct MyTask
                         fichier2<<mother.pdgCode()<<", StatusCode:"<<mother.getGenStatusCode()<<"-->";
                     }
                 }
-                /**********NoPM.txt***********/
+                /**********NoFM.txt***********/
             }
             fichier<<std::endl;
             fichier2<<std::endl;
@@ -538,7 +589,8 @@ struct MyTask
 
         histo.fill(HIST("2DJetMother"), msize, jet.tracks().size());
         histo.get<TH2>(HIST("2DJetMother"))->SetOption("colz");
-        float PMpercentage =totalcount*100./jet.tracks().size();
+
+        float PMpercentage =totalcount*100./jet.tracks().size(); //Percentage of tracks with a primordial mother
         histo.fill(HIST("PMpercentage"), PMpercentage);
 
     }
@@ -548,11 +600,12 @@ struct MyTask
     Filter Trackincut = (aod::track::pt>trackPtMin && aod::track::pt<trackPtMax && aod::track::eta>trackEtaMin && aod::track::eta<trackEtaMax && aod::track::phi>trackPhiMin && aod::track::phi<trackPhiMax);
     using Detectorjet = soa::Join<aod::ChargedMCDetectorLevelJets, aod::ChargedMCDetectorLevelJetConstituents>;
 
+    //Process that compare truejet object to jet 
     void processTruejet(Detectorjet const& jets,soa::Filtered<soa::Join<aod::Tracks, aod::McTrackLabels>> const& tracks, aod::McParticles const& mcparticles){
         
         //Partition<soa::Join<aod::Tracks, aod::McTrackLabels>> Trackincut = (aod::track::pt>trackPtMin && aod::track::pt<trackPtMax && aod::track::eta>trackEtaMin && aod::track::eta<trackEtaMax && aod::track::phi>trackPhiMin && aod::track::phi<trackPhiMax);
 
-        std::vector<std::vector<int64_t>>truejet=Truejetfinder(mcparticles,tracks); //Get the truejet array
+        std::vector<std::vector<int64_t>>truejet=Truejetfinder(mcparticles,tracks);  //Get the truejet array
         int tjetsize=truejet.size();
 
         for (int i=0; i<tjetsize; i++)
@@ -567,9 +620,10 @@ struct MyTask
 
             float eta_jet = primordialmother.eta();
             float phi_jet = primordialmother.phi();
+            float pt_jet = primordialmother.pt();
             float delta_eta=0;
             float delta_phi=0;
-            float deltaR=0;
+            float deltaR=0;  //Radius of the truejet
             float sumE=0;
             float sumpx=0;
             float sumpy=0;
@@ -600,7 +654,7 @@ struct MyTask
                 else if(PDG==-3312)     { hPDG->Fill("ksi+",1); }
                 else                    { hPDG->Fill("Other",1); }
 
-                jetpt+=track.pt();
+                //jetpt+=track.pt();
 
                 float eta_track=track.eta();
                 float phi_track=track.phi();
@@ -614,7 +668,8 @@ struct MyTask
                 sumpz+=track.pz();
             }
 
-            
+            TLorentzVector truejetvector(sumpx, sumpy, sumpz,sumE);
+            jetpt=truejetvector.Pt();
 
             if (jetpt>jetptcut)
             {
@@ -635,12 +690,12 @@ struct MyTask
                     hPDG->Fill("t",1);
                 }else if (abs(PMpdgcode)==21){
                     hPDG->Fill("g",1);
-                }else if (abs(PMpdgcode)!=0){ // In the case where no mother was found we don't increment
+                }else if (abs(PMpdgcode)!=0){       // In the case where no mother was found we don't increment
                     hPDG->Fill("other",1);
                 }
 
 
-                deltaR= sqrt((delta_eta*delta_eta+delta_phi*delta_phi)/(subsize*subsize));
+                deltaR= sqrt((delta_eta*delta_eta+delta_phi*delta_phi)/(subsize*subsize)); 
                 histo.fill(HIST("Rdistribution"), deltaR);
 
 
@@ -649,7 +704,7 @@ struct MyTask
                     phi_jet=phi_jet-2*M_PI;
                 }
 
-                TLorentzVector truejetvector(sumpx, sumpy, sumpz,sumE);
+                
                 float reconstructedphi=truejetvector.Phi();
                 if(reconstructedphi > M_PI)
                 {
@@ -660,9 +715,10 @@ struct MyTask
                 histo.get<TH2>(HIST("2DetaTruejet"))->SetOption("colz");
                 histo.fill(HIST("2DphiTruejet"), reconstructedphi, phi_jet);
                 histo.get<TH2>(HIST("2DphiTruejet"))->SetOption("colz");
+                
             }
 
-            histo.fill(HIST("2DMomentumTruejet"), primordialmother.pt(),jetpt);
+            histo.fill(HIST("2DMomentumTruejet"), jetpt,pt_jet);
             histo.get<TH2>(HIST("2DMomentumTruejet"))->SetOption("colz");
         }
 
@@ -671,59 +727,62 @@ struct MyTask
         {   
             histo.fill(HIST("Jetsize"),jet.tracks().size());
             histo.fill(HIST("JetPt"), jet.pt());
-            float matchpercentage=0;    //Number of match / jet size
+            float matchpercentage=0;    //Number of match / Number of 
             int subsize=0;
             int temposubsize;
             std::vector<int64_t> Idfound;  //Table that contain primordial mothers already matched
-            int Idsize=0;
-            int truecounter=0;      //Number of time a primordial mother is found
+            int Idsize=0;   //Stock firstmother ID already found
+            int totalmatch=0;      //Number of time a primordial mother is found
 
             float sumpt=0;
             float sumE=0;
             float sumpx=0;
             float sumpy=0;
             float sumpz=0;
-
             float eta_jet = jet.eta();
             float phi_jet = jet.phi();
             float delta_eta=0;
             float delta_phi=0;
             float deltaR=0;
             
+            int match=0;
+            float tempo=0;      //temporise the value for matchpercentage
             auto hPDG = histo.get<TH1>(HIST("PDGcode3"));
             for (auto const& track : jet.tracks_as<soa::Join<aod::Tracks, aod::McTrackLabels>>())
             {
 
                 int PDG=track.mcParticle().pdgCode();
-                if(PDG==321)            { hPDG->Fill("K+",1); }
-                else if(PDG==-321)      { hPDG->Fill("K-",1); }
-                else if(PDG==-211)      { hPDG->Fill("pi+",1); }
-                else if(PDG==211)       { hPDG->Fill("pi-",1); }
-                else if(PDG==11)        { hPDG->Fill("e-",1); }
-                else if(PDG==-11)       { hPDG->Fill("e+",1); }
-                else if(PDG==2212)      { hPDG->Fill("p",1); }
-                else if(PDG==-2212)     { hPDG->Fill("pbar",1); }
-                else if(PDG==-13)       { hPDG->Fill("mu+",1); }
-                else if(PDG==13)        { hPDG->Fill("mu-",1); }
-                else if(PDG==3112)      { hPDG->Fill("sigma-",1); }
-                else if(PDG==3222)      { hPDG->Fill("sigma+",1); }
-                else if(PDG==3312)      { hPDG->Fill("ksi-",1); }
-                else if(PDG==-3312)     { hPDG->Fill("ksi+",1); }
-                else                    { hPDG->Fill("Other",1); }
+                if(PDG==321)       { hPDG->Fill("K+",1); }
+                else if(PDG==-321)       { hPDG->Fill("K-",1); }
+                else if(PDG==-211)  { hPDG->Fill("pi+",1); }
+                else if(PDG==211)  { hPDG->Fill("pi-",1); }
+                else if(PDG==11)   { hPDG->Fill("e-",1); }
+                else if(PDG==-11)  { hPDG->Fill("e+",1); }
+                else if(PDG==2212) { hPDG->Fill("p",1); }
+                else if(PDG==-2212) { hPDG->Fill("pbar",1); }
+                else if(PDG==-13)   { hPDG->Fill("mu+",1); }
+                else if(PDG==13)   { hPDG->Fill("mu-",1); }
+                else if(PDG==3112) { hPDG->Fill("sigma-",1); }
+                else if(PDG==3222) { hPDG->Fill("sigma+",1); }
+                else if(PDG==3312) { hPDG->Fill("ksi-",1); }
+                else if(PDG==-3312) { hPDG->Fill("ksi+",1); }
+                else{ hPDG->Fill("Other",1); }
 
                 histo.fill(HIST("jetTrackpt"), track.pt());
+                //histo.fill(HIST("jetTracketa"), track.eta());
+                //histo.fill(HIST("jetTrackphi"), track.phi());
 
                 if(!track.has_mcParticle())
                 {
                     continue;
                 }
-                int match=0;
-                float tempo;    //temporise the value for matchpercentage
+                match=0;
+                tempo=0;
                 auto finalstateParticle=track.mcParticle();
                 auto outputIparticle=finalstateParticle;
                 if (getMotherfromSubprocess(mcparticles, finalstateParticle, outputIparticle) != false)
                 {
-                    truecounter++;
+
                     for (int i=0; i<tjetsize; i++)
                     {
                         auto trackinput=tracks.rawIteratorAt(truejet[i][0]-tracks.offset());
@@ -737,26 +796,29 @@ struct MyTask
                             int c=0;
                             for (int k=0; k<Idsize; k++)
                             {
-                                if (outputIparticle.globalIndex()==Idfound[k])
+                                if (outputIparticle.globalIndex()==Idfound[k]) // Check if the mother was already done 
                                 {
                                     c++;
                                     break;
                                 }
                             }
-                            if (c==0)
+                            if (c==0) 
                             {
                                 Idfound.push_back(outputIparticle.globalIndex());
-                                for (auto const & track2 :jet.tracks_as<soa::Join<aod::Tracks, aod::McTrackLabels>>())
+                                Idsize++;
+                                for (auto const & track2 :jet.tracks_as<soa::Join<aod::Tracks, aod::McTrackLabels>>()) // Look for the number of match 
                                 {
 
                                     if(!track2.has_mcParticle())
                                     {
                                         continue;
                                     }
+
                                     for (int j=0; j<subsize; j++)
                                     {
                                         if (truejet[i][j]==track2.globalIndex())
                                         {
+                                            totalmatch++;
                                             match++;
                                             break;
                                         }
@@ -767,8 +829,8 @@ struct MyTask
                             }
                         }
                     }
-                    tempo= match*100./jet.tracks().size();
-                    if (tempo>matchpercentage)
+                    tempo=match;
+                     if (tempo>matchpercentage)
                     {
                         temposubsize=subsize;
                         matchpercentage=tempo;
@@ -784,20 +846,27 @@ struct MyTask
                 float phi_track=track.phi();
 
                 delta_eta+=eta_track-eta_jet;
-                delta_phi+=phi_track-phi_jet;
+                delta_phi+=abs(phi_track-phi_jet);
 
             }
-            histo.fill(HIST("Truejetmatching"), matchpercentage);
-            if (truecounter>0) //Avoid to take into account tracks with no first mother
+            float truetrackswithnomatch=(1-matchpercentage/temposubsize)*100.;
+            matchpercentage=matchpercentage*100/totalmatch;
+            float matchpercentage1=totalmatch*100./jet.tracks().size();
+            
+            histo.fill(HIST("Truejetmatching1"), matchpercentage1);     //percentage of the nb of match 
+            if (totalmatch>0) //Avoid to take into account tracks with no 23, 33, 51
             {
-                histo.fill(HIST("Nbtracksmatching"), temposubsize);
+                histo.fill(HIST("Truejetmatching2"), matchpercentage1);  //percentage of the nb of match (only it has one)
+                histo.fill(HIST("Truejetmatching3"), matchpercentage);      // best nb of match/ total nb of match
+                histo.fill(HIST("Nbtracksmatching"), temposubsize);         // size of the true jet with the best nb of match
+                histo.fill(HIST("Truetracknomatch"), truetrackswithnomatch);    // percentage of tracks with no match in truejets
             }
 
-            deltaR= sqrt((delta_eta*delta_eta+delta_phi*delta_phi)/(jet.tracks().size()*jet.tracks().size()));
+            deltaR= sqrt((delta_eta*delta_eta+delta_phi*delta_phi)/(jet.tracks().size()*jet.tracks().size())); 
             histo.fill(HIST("Rdistributionjet"), deltaR);
 
             TLorentzVector jetvector(sumpx, sumpy, sumpz,sumE);
-            histo.fill(HIST("2DMomentumjet"), sumpt, jet.pt());
+            histo.fill(HIST("2DMomentumjet"), jetvector.Pt(), jet.pt());
             histo.get<TH2>(HIST("2DMomentumjet"))->SetOption("colz");
             
             float jetphi=jet.phi();
@@ -823,130 +892,87 @@ struct MyTask
 
     using ParticleJet = soa::Join<aod::ChargedMCParticleLevelJets, aod::ChargedMCParticleLevelJetConstituents>;
 
-    
+    //Process that look for jetPt and truejet Pt at the particleLevel
+    int AO2Dcounter=0;
     void processParticleLevel(ParticleJet const& jets,soa::Join<aod::Tracks, aod::McTrackLabels> const& tracks, aod::McParticles const& mcparticles){
-        int nbjet=0;
-        for (auto const& jet: jets)
+
+        AO2Dcounter++;
+        std::ofstream fichier;
+        std::ofstream fichier2;
+        if (AO2Dcounter==1)     
         {
-            nbjet++;
-            std::ofstream fichier;
-            //std::ofstream fichier2;
-            if (nbjet==1)
-            {
-                fichier.open("MotherlistParticleLvl.txt", std::ios::out | std::ios::trunc);
-                //fichier2.open("StatuscodeParticleLvl.txt", std::ios::out | std::ios::trunc);
-            }else
-            {
-                fichier.open("MotherlistParticleLvl.txt", std::ios::out | std::ios::app);
-                //fichier2.open("StatuscodeParticleLvl.txt", std::ios::out | std::ios::app);
-            }
-            
-            //Array that contain all the mothers in a jet
-            //First item: Id, Second item: Count
-            std::vector<std::vector<int64_t>> mothers;
-            int msize=0;
-
-            std::vector<int> dominantmother(2,0); 
-
-            histo.fill(HIST("Pjetsize"), jet.size());
-            histo.fill(HIST("Pjetpt"), jet.pt());
-            fichier<<"Jet "<<nbjet<<":"<<std::endl;
-            auto hPDG = histo.get<TH1>(HIST("PDGcode4"));   //Fill the PDGcode histogram of final states
-            auto hPDG2 = histo.get<TH1>(HIST("PDGcode5"));   //Fill the PDGcode histogram of primordial mother
-            for (auto const& jetconstituent: jet.tracks_as<aod::McParticles>())
-            {
-                auto mother=jetconstituent;
-                TParticlePDG* particle = TDatabasePDG::Instance()->GetParticle(mother.pdgCode());
-                if (particle != nullptr) 
-                {
-                    fichier<<"|" <<particle->GetName()<<", Status code:"<<mother.getGenStatusCode()<<"|, ";
-                }else{
-                    fichier<<"|"<<static_cast<long int>(mother.pdgCode())<<", Status code:"<<mother.getGenStatusCode()<< "|, ";
-                }
-
-                while (mother.has_mothers()){
-                    mother=mother.mothers_first_as<aod::McParticles>();
-
-                    particle = TDatabasePDG::Instance()->GetParticle(mother.pdgCode());
-                    if (particle != nullptr) 
-                    {
-                    fichier<<"|" <<particle->GetName()<<", Status code:"<<mother.getGenStatusCode()<<"|, ";
-                    }else{
-                        fichier<<"|"<<static_cast<long int>(mother.pdgCode())<<", Status code:"<<mother.getGenStatusCode()<< "|, ";
-                    }
-                }
-                fichier<<std::endl;
-
-                int PDG=jetconstituent.pdgCode();
-                if(PDG==321)       { hPDG->Fill("K+",1); }
-                else if(PDG==-321)       { hPDG->Fill("K-",1); }
-                else if(PDG==-211)  { hPDG->Fill("pi+",1); }
-                else if(PDG==211)  { hPDG->Fill("pi-",1); }
-                else if(PDG==11)   { hPDG->Fill("e-",1); }
-                else if(PDG==-11)  { hPDG->Fill("e+",1); }
-                else if(PDG==2212) { hPDG->Fill("p",1); }
-                else if(PDG==-2212) { hPDG->Fill("pbar",1); }
-                else if(PDG==-13)   { hPDG->Fill("mu+",1); }
-                else if(PDG==13)   { hPDG->Fill("mu-",1); }
-                else if(PDG==3112) { hPDG->Fill("sigma-",1); }
-                else if(PDG==3222) { hPDG->Fill("sigma+",1); }
-                else if(PDG==3312) { hPDG->Fill("ksi-",1); }
-                else if(PDG==-3312) { hPDG->Fill("ksi+",1); }
-                else{ hPDG->Fill("Other",1); }
-
-                auto finalstateParticle=jetconstituent;
-                auto outputIparticle=finalstateParticle;
-
-                if (getMotherfromSubprocess(mcparticles, finalstateParticle, outputIparticle ) != false)
-                {
-                    int counter=0;
-                    for(int i=0; i<msize; i++)
-                    {
-                        if (mothers[i][0]==outputIparticle.globalIndex())
-                        {
-                            mothers[i][2]++;
-                            counter++;
-                            break;
-                        }
-                    }
-                    if (counter==0)
-                    {
-                        mothers.push_back({outputIparticle.globalIndex(),outputIparticle.pdgCode(),1});
-                        msize=mothers.size();
-                    }
-                }
-            }
-            fichier.close();
-
-            for(int i=0; i<msize; i++)
-            {
-                if (mothers[i][2]>dominantmother[1])
-                {
-                    dominantmother[1]=mothers[i][2];
-                    dominantmother[0]=mothers[i][1];
-                }
-            }
-
-        
-            if(abs(dominantmother[0])==1){
-                hPDG2->Fill("u",1);
-            }else if (abs(dominantmother[0])==2){
-                hPDG2->Fill("d",1);
-            }else if (abs(dominantmother[0])==3){
-                hPDG2->Fill("s",1);
-            }else if (abs(dominantmother[0])==4){
-                hPDG2->Fill("c",1);
-            }else if (abs(dominantmother[0])==5){
-                hPDG2->Fill("b",1);
-            }else if (abs(dominantmother[0])==6){
-                hPDG2->Fill("t",1);
-            }else if (abs(dominantmother[0])==21){
-                hPDG2->Fill("g",1);
-            }else if (abs(dominantmother[0])!=0){ // In the case where no mother was found we don't increment
-                hPDG2->Fill("other",1);
-            }
+            fichier.open("ParticleLvljetoutput.txt", std::ios::out | std::ios::trunc);
+            fichier2.open("ParticleLvltruejetoutput.txt", std::ios::out | std::ios::trunc);
+        }else{
+            fichier.open("ParticleLvljetoutput.txt", std::ios::out | std::ios::app);
+            fichier2.open("ParticleLvltruejetoutput.txt", std::ios::out | std::ios::app);
         }
 
+
+        /*for (auto const& jet: jets)
+        {
+            float sumpt=0;
+            float sumE=0;
+            float sumpx=0;
+            float sumpy=0;
+            float sumpz=0;
+            float eta_jet = jet.eta();
+            float phi_jet = jet.phi();
+            float delta_eta=0;
+            float delta_phi=0;
+            float deltaR=0;
+
+            for (auto const& track : jet.tracks_as<aod::McParticles>())
+            {
+
+                TParticlePDG* particlename = TDatabasePDG::Instance()->GetParticle(track.pdgCode());
+                if (particlename != nullptr){
+                        fichier<<particlename->GetName()<<std::endl;
+                }else{
+                        fichier<<track.pdgCode()<<std::endl;
+                }
+
+                sumE+=track.e();
+                sumpx+=track.px();
+                sumpy+=track.py();
+                sumpz+=track.pz();
+                sumpt+=track.pt();
+
+                float eta_track=track.eta();
+                float phi_track=track.phi();
+
+                delta_eta+=eta_track-eta_jet;
+                delta_phi+=abs(phi_track-phi_jet);
+            }
+            
+
+            deltaR= sqrt((delta_eta*delta_eta+delta_phi*delta_phi)/(jet.tracks().size()*jet.tracks().size()));
+            histo.fill(HIST("RdistributionjetP"), deltaR);
+
+            TLorentzVector jetvector(sumpx, sumpy, sumpz,sumE);
+            histo.fill(HIST("2DMomentumjetP"), jetvector.Pt(), jet.pt());
+            histo.get<TH2>(HIST("2DMomentumjetP"))->SetOption("colz");
+
+            float jetphi=jet.phi();
+            if (jetphi > M_PI)
+            {
+                jetphi=jetphi-2*M_PI;
+            }
+
+            float reconstructedphi=jetvector.Phi();
+            if(reconstructedphi > M_PI)
+            {
+                reconstructedphi=reconstructedphi - 2*M_PI;
+            }
+
+            histo.fill(HIST("2DetajetP"), jetvector.Eta(), jet.eta());
+            histo.get<TH2>(HIST("2DetajetP"))->SetOption("colz");
+            histo.fill(HIST("2DphijetP"), reconstructedphi, jetphi);
+            histo.get<TH2>(HIST("2DphijetP"))->SetOption("colz");
+            
+        }*/
+
+        //Take much more time if not commented 
 
         std::vector<std::vector<int64_t>> truejet=TruejetfinderParticle(mcparticles);
         int truejetsize=truejet.size();
@@ -954,8 +980,25 @@ struct MyTask
         
         for (int i=0; i<truejetsize; i++)
         {
+            //printf("New Truejet\n");
+
             float jetpt=0;
             int subsize=truejet[i].size();
+
+            auto finalparticle=mcparticles.rawIteratorAt(truejet[i][0]-mcparticles.offset());
+            auto primordialmother=finalparticle;
+            getMotherfromSubprocess(mcparticles, finalparticle, primordialmother);
+            
+            float eta_jet = primordialmother.eta();
+            float phi_jet = primordialmother.phi();
+            //float pt_jet = primordialmother.pt();
+            float delta_eta=0;
+            float delta_phi=0;
+            float deltaR=0;
+            float sumE=0;
+            float sumpx=0;
+            float sumpy=0;
+            float sumpz=0;
 
             for(int j=0; j<subsize; j++)
             {
@@ -964,15 +1007,61 @@ struct MyTask
                 histo.fill(HIST("PtrueTrackpt"), particle.pt());
                 histo.fill(HIST("PtrueTracketa"), particle.eta());
                 histo.fill(HIST("PtrueTrackphi"), particle.phi());
-                jetpt+=particle.pt();
+                //jetpt+=particle.pt();
+
+                float eta_track=particle.eta();
+                float phi_track=particle.phi();
+
+                delta_eta+=eta_track-eta_jet;
+                delta_phi+=abs(phi_track-phi_jet);
+
+                sumE+=particle.e();
+                sumpx+=particle.px();
+                sumpy+=particle.py();
+                sumpz+=particle.pz();
+
+                TParticlePDG* particlename = TDatabasePDG::Instance()->GetParticle(particle.pdgCode());
+                if (particlename != nullptr){
+                        fichier2<<particlename->GetName()<<std::endl;
+                }else{
+                        fichier2<<particle.pdgCode()<<std::endl;
+                }
+            
+            }
+            TLorentzVector truejetvector(sumpx, sumpy, sumpz,sumE);
+            jetpt=truejetvector.Pt();
+
+            if (jetpt>jetptcut)
+            {
+
+
+                deltaR= sqrt((delta_eta*delta_eta+delta_phi*delta_phi)/(subsize*subsize));
+                histo.fill(HIST("RdistributionP"), deltaR);
+
+                if (phi_jet> M_PI)
+                {
+                    phi_jet=phi_jet-2*M_PI;
+                }
+
+                
+                float reconstructedphi=truejetvector.Phi();
+                if(reconstructedphi > M_PI)
+                {
+                    reconstructedphi=reconstructedphi - 2*M_PI;
+                }
+
+                histo.fill(HIST("2DetaTruejetP"), truejetvector.Eta(), eta_jet);
+                histo.get<TH2>(HIST("2DetaTruejetP"))->SetOption("colz");
+                histo.fill(HIST("2DphiTruejetP"), reconstructedphi, phi_jet);
+                histo.get<TH2>(HIST("2DphiTruejetP"))->SetOption("colz");
+                
             }
 
-            auto inputparticle=mcparticles.rawIteratorAt(truejet[i][0]-mcparticles.offset());
-            auto PMparticle=inputparticle;
-            getMotherfromSubprocess(mcparticles, inputparticle, PMparticle);
 
-            histo.fill(HIST("P2DMomentum"), PMparticle.pt(),jetpt);
+            histo.fill(HIST("P2DMomentum"), jetpt ,primordialmother.pt());
             histo.get<TH2>(HIST("P2DMomentum"))->SetOption("colz");
+
+            
 
         } 
 
@@ -981,6 +1070,7 @@ struct MyTask
     }
     PROCESS_SWITCH(MyTask, processParticleLevel, "Process at ParticleLevel", false);
 
+    //First try to look for correspondance beetween Detector Level and Particle Lvl. Not a big success
     void processMatching(ParticleJet const& Pjets, Detectorjet const& Djets, soa::Join<aod::Tracks, aod::McTrackLabels> const& tracks, aod::McParticles const& mcparticles){
         
         for (auto const& Djet :Djets)
@@ -1102,17 +1192,12 @@ struct MyTask
 
     using SelectedTracks = soa::Filtered<soa::Join<aod::Tracks, aod::McTrackLabels, aod::TracksCov, aod::TracksDCA>>;
 
-    template <typename T> int sgn(T val)
-    {
-        return (T(0) < val) - (val < T(0));
-    }
+    //Process that search for second vertices and find the decaylenght 
     int nbSV=0;
     int nbSVb=0;
-    
     int nbpoint=0;
     void processSV(Detectorjet::iterator const& jet, SelectedTracks const& tracks, aod::McParticles const& mcparticles, aod::Collisions const& collisions){
 
-        //Based on O2Physics/Tutorials/PWGHF/taskMini.cxx 
         o2::vertexing::DCAFitterN<2> df2;
         df2.setPropagateToPCA(propagateToPCA);
         df2.setMaxR(maxR);
@@ -1124,18 +1209,21 @@ struct MyTask
         df2.setBz(bz);
         
         int counterloop1=0;
-        double finaldecaylenght=0;
-        double finaldcaxy=0;
-        double finaldcaz=0;
+        float finaldecaylenght=0;
+        float finaldcaxy=0;
+        float finaldcaz=0;
+
         int64_t Id1=0;
         int64_t Id2=0;
-        double d1=0;
-        double d2=0;
-        double L=0;
 
+        int nbSVinjet=0;
+
+        int lightSV=0;
+        int bSV=0;
+        // Loop over all the tracks to find SV
         for (auto const& track1 : jet.tracks_as<SelectedTracks>()) {
 
-            if(!track1.has_mcParticle() || track1.pt()<=1|| track1.dcaXY()>0.2|| track1.dcaZ()>17) //Track cut for b jet tagging
+            if(!track1.has_mcParticle() || track1.pt()<=1|| track1.dcaXY()>0.2|| track1.dcaZ()>17)
             {
                 continue;
             }
@@ -1156,20 +1244,37 @@ struct MyTask
                     auto trackParVarNeg1 = getTrackParCov(track2);
                     
                     // secondary vertex reconstruction and further 2-prong selections
-                    if (df2.process(trackParVarPos1, trackParVarNeg1) == 0) {
+                    if (df2.process(trackParVarPos1, trackParVarNeg1) == 0) 
+                    {
                     continue;
                     }
+                    nbSVinjet++;
+
+                    auto finalstatemother1=track1.mcParticle();
+                    auto finalstatemother2=track2.mcParticle();
+                    auto firstmother1=track1.mcParticle();
+                    auto firstmother2=track2.mcParticle();
+
+
+                    if(getMotherfromSubprocess(mcparticles, finalstatemother1,firstmother1)|| getMotherfromSubprocess(mcparticles, finalstatemother2,firstmother2))
+                    {
+                        if (firstmother1.pdgCode()==5||firstmother2.pdgCode()==5)
+                        {
+                            bSV++;
+                        }else{
+                            lightSV++;
+                        }
+                    }
+                    
                     //  get secondary vertex
                     const auto& secondaryVertex = df2.getPCACandidate();
 
-                    double distX=primaryVertex.getX()-secondaryVertex[0];
-                    double distY=primaryVertex.getY()-secondaryVertex[1];
-                    double distZ=primaryVertex.getZ()-secondaryVertex[2];
+                    float distX=primaryVertex.getX()-secondaryVertex[0];
+                    float distY=primaryVertex.getY()-secondaryVertex[1];
+                    float distZ=primaryVertex.getZ()-secondaryVertex[2];
 
-
-                    //printf("PV: %f, SV: %f\n", primaryVertex.getX(), secondaryVertex[0]);
-                    double decaylenght=sqrt(distX*distX+distY*distY+distZ*distZ);
-                    double dcaxy=sqrt(distX*distX+distY*distY);
+                    float decaylenght=sqrt(distX*distX+distY*distY+distZ*distZ);
+                    float dcaxy=sqrt(distX*distX+distY*distY);
                     if (decaylenght>finaldecaylenght)
                     {
                         finaldecaylenght=decaylenght;
@@ -1177,20 +1282,6 @@ struct MyTask
                         finaldcaz=distZ;
                         Id1=track1.globalIndex();
                         Id2=track2.globalIndex();
-
-                        double dx=track1.x()-secondaryVertex[0];
-                        double dy=track1.y()-secondaryVertex[1];
-                        double dz=track1.z()-secondaryVertex[2];
-                        d1=sqrt(dx*dx+dy*dy+dz*dz);
-
-                        dx=track2.x()-secondaryVertex[0];
-                        dy=track2.y()-secondaryVertex[1];
-                        dz=track2.z()-secondaryVertex[2];
-                        d2=sqrt(dx*dx+dy*dy+dz*dz);
-
-                        double Lnorm= sqrt(secondaryVertex[0]*secondaryVertex[0]+secondaryVertex[1]*secondaryVertex[1]+secondaryVertex[2]*secondaryVertex[2]);
-                        double Lp=secondaryVertex[0]*jet.px()+secondaryVertex[1]*jet.py()+secondaryVertex[2]*jet.pz();
-                        L= Lnorm*sgn(Lp);
                     }
                 }
             }
@@ -1203,87 +1294,68 @@ struct MyTask
         auto primordialmother1=inputpart1;
         auto primordialmother2=inputpart2;
 
-        double error=sqrt(d1*d1+d2*d2);
-        double significance=L/error;
-
-        if (getMotherfromSubprocess(mcparticles,inputpart1,primordialmother1) || getMotherfromSubprocess(mcparticles,inputpart2,primordialmother2))
+        if (getMotherfromSubprocess(mcparticles,inputpart1,primordialmother1) || getMotherfromSubprocess(mcparticles,inputpart2,primordialmother2)) 
         {
-            nbSV++;
-            if(primordialmother1.pdgCode()==5 || primordialmother2.pdgCode()==5)
-            {
-                nbSVb++;
-                histo.fill(HIST("DeclenghtB"), finaldecaylenght);
-                histo.fill(HIST("DeclenghtBxy"), finaldcaxy);
-                histo.fill(HIST("DeclenghtBz"), finaldcaz); 
-                histo.fill(HIST("SignificanceB"), significance);
+            //float mass= inputpart1.weight()+ inputpart2.weight();
 
-            }else{
-                histo.fill(HIST("Declenght"), finaldecaylenght);
-                histo.fill(HIST("Declenghtxy"), finaldcaxy);
-                histo.fill(HIST("Declenghtz"), finaldcaz); 
-                histo.fill(HIST("Significance"), significance);
-            }
+            //if (finaldecaylenght>0.025 && finaldecaylenght<2.5 )
+            //{
+                nbSV++;
+                if(primordialmother1.pdgCode()==5 || primordialmother2.pdgCode()==5)
+                {
+                    nbSVb++;
+                    histo.fill(HIST("DeclenghtB"), finaldecaylenght);
+                    histo.fill(HIST("DeclenghtBxy"), finaldcaxy);
+                    histo.fill(HIST("DeclenghtBz"), finaldcaz); 
+                }else{
+                    histo.fill(HIST("Declenght"), finaldecaylenght);
+                    histo.fill(HIST("Declenghtxy"), finaldcaxy);
+                    histo.fill(HIST("Declenghtz"), finaldcaz); 
+                }
+            //}
         }
         float purity=nbSVb*100./nbSV;
         float efficiency= nbSVb*100./nbBjet;
         printf("Purity: %f, Efficiency: %f\n", purity, efficiency);
+        histo.fill(HIST("nbSVB"), bSV);
+        histo.fill(HIST("nbSV"), lightSV);
         
         
     }
     PROCESS_SWITCH(MyTask, processSV, "Test SV", true);
 
     
+    int AO2Dcounter2=0;
+    void processMygraph(aod::Collisions const& collisions, SelectedTracks const& tracks,aod::McParticles const& mcparticles){
+        AO2Dcounter2++;
+        std::ofstream fichier;
 
-    void processMygraph(aod::Collisions const& collisions, SelectedTracks const& tracks, Detectorjet const& jets,aod::McParticles const& mcparticles){
-        for(auto const& track:tracks)
+        if (AO2Dcounter2==1)
         {
-        histo.fill(HIST("Alltrackspt"), track.pt());
+            fichier.open("Outputtrack.txt", std::ios::out | std::ios::trunc);
+        }else{
+            fichier.open("Outputtrack.txt", std::ios::out | std::ios::app);
         }
 
-        //int jetcounter=0;
-        int c=0;
-        for(auto const& jet: jets)
+        for(auto const& track: tracks)
         {
-            /*if (jet.collisionId()==collision.globalIndex())
+            if(!track.has_mcParticle())
             {
-            jetcounter++;
-            }*/
-            c++;
-            printf("JET %d: \n", c);
-            int trackcounter=0;
-            for (auto const& track : jet.tracks_as<soa::Join<aod::Tracks, aod::McTrackLabels, aod::TracksCov, aod::TracksDCA>>())
-            {
-                if(!track.has_mcParticle())
-                {
-                    continue;
-                }
-                trackcounter++;
-                printf("track %d\n", trackcounter);
-                auto finalstateParticle=track.mcParticle();
-                auto mother=finalstateParticle;
-                int countmother=0;
-                while (mother.has_mothers()) {
-                    countmother++;
-                    printf("NewMother");
-                    for (auto iMother = mother.mothersIds().front(); iMother <= mother.mothersIds().back(); ++iMother) 
-                    {
-                        auto mother2 = mcparticles.rawIteratorAt(iMother - mcparticles.offset());
-                        if(c<10&&trackcounter==1)
-                        {
-                            printf("mother pdgcode: %d\n",mother2.pdgCode());
-                        }
-                        
-                    }
-                    if (countmother==10)
-                    {
-                        break;
-                    }
-                    printf("Test");
-                    mother=mother.mothers_first_as<aod::McParticles>();
-                }
+                continue;
             }
+            auto particle=track.mcParticle();
+            TParticlePDG* particlename = TDatabasePDG::Instance()->GetParticle(particle.pdgCode());
+
+            if (particlename != nullptr)
+            {
+                fichier<<particlename->GetName()<<std::endl;
+            }else{
+                fichier<<particle.pdgCode()<<std::endl;
+            }
+            histo.fill(HIST("Alltrackspt"), track.pt());
+            histo.fill(HIST("DCAhistoXY"), track.dcaXY());
+            histo.fill(HIST("DCAhistoZ"), track.dcaZ());
         }
-        //histo.fill(HIST("Nbjetincollision"), jetcounter);
     }
     PROCESS_SWITCH(MyTask, processMygraph, "Process just to plot basics data", true);
 

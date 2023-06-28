@@ -80,4 +80,9 @@ if(FastJet_FOUND)
                         SOURCES completecode.cxx
                         PUBLIC_LINK_LIBRARIES O2::DetectorsVertexing O2::DCAFitter O2::Framework O2Physics::PWGJECore O2Physics::AnalysisCore 
                         COMPONENT_NAME Analysis)
+    o2physics_add_dpl_workflow(jet-firstmotherexemple
+                        SOURCES FirstMotherexemple.cxx
+                        PUBLIC_LINK_LIBRARIES O2::Framework O2Physics::PWGJECore O2Physics::AnalysisCore 
+                        COMPONENT_NAME Analysis)
+
 endif()

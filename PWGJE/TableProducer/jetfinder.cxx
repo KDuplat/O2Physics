@@ -135,7 +135,7 @@ struct JetFinderTask {
                        JetClusters const& clusters)
   {
     if (!collision.alias()[kTVXinEMC]) {
-      return;
+      //return;
     }
     inputParticles.clear();
     analyseTracks<JetTracks, JetTracks::iterator>(inputParticles, tracks, trackSelection);
